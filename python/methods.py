@@ -1,27 +1,60 @@
+import os
 import hashlib
 import jwt
+import connections
+from hmac import compare_digest
+from dotenv import load_dotenv
+
+load_dotenv()
+
+JWT_SECRET = os.getenv("TOKEN_SECRET")
+
 class Token:
-    def generateToken(self, username, input_password, Query):  
-        usefulKey = 'my2w7wjd7yXF64FIADfJxNs1oupTGAuW'
-        if Query!=None:
-            salt=Query[0][0]
-            password=Query[0][1]
-            role=Query[0][2]  
-            hashPass=hashlib.sha512((input_password+salt).encode()).hexdigest()
-            if hashPass==password:
-                enJWT = jwt.encode({"role": role}, usefulKey, algorithm='HS256')
-                return enJWT
-            else:
-                return False
+    def generate_token(self, input_username, input_password):
+
+        user_info = connections.query_user_info(input_username)
+
+        if user_info == None:
+            return None
+
+        db_password, db_salt, db_role = user_info
+
+        if Authorization.verify_login(input_username, input_password, db_password, db_salt):
+            jwt_token = jwt.encode(
+                payload={"role": db_role},
+                key = JWT_SECRET,
+                algorithm = "HS256"
+            )
+            return jwt_token
         else:
-            return False
+            return None
+
+
 class Restricted:
-    def access_Data(self, authorization): 
+    def access_data(self, authorization): 
+        """
+        Verifies that the JWT was created with the given secret and the HS256 alg.
+        :return: string  
+        """
+
         try:
-            var1=jwt.decode(authorization.replace('Bearer', '')[2:-1], 'my2w7wjd7yXF64FIADfJxNs1oupTGAuW', algorithms='HS256')
-        except Exception as e:
+            payload = jwt.decode(authorization, key=JWT_SECRET, algorithms=["HS256", ])
+        except jwt.exceptions.InvalidSignatureError:
             return False
-        if 'role' in var1:
-            return True  
-        else:
-            return False
+
+        return "role" in payload
+
+class Authorization:
+
+    @staticmethod
+    def verify_login(username, input_password, db_password, salt):
+        """
+        Verifies that login credentials are correct
+        :return: boolean (if credentials are valid)
+        """
+        # Encode password using salt
+        salted_password = input_password + salt
+        encoded_password = hashlib.sha512(salted_password.encode()).hexdigest()
+
+        return compare_digest(encoded_password, db_password) # will return True if password is correct
+

@@ -53,4 +53,7 @@ __pycache__/
 # Provision
 provision/.*/*
 
+# interpreter
+sre-bootcamp-project-env/
+
 provision/terraform/destroy-candidate.sh
