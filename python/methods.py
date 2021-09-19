@@ -31,14 +31,14 @@ class Token:
 
 
 class Restricted:
-    def access_data(self, authorization): 
+    def access_data(self, auth_token): 
         """
         Verifies that the JWT was created with the given secret and the HS256 alg.
         :return: string  
         """
 
         try:
-            payload = jwt.decode(authorization, key=JWT_SECRET, algorithms=["HS256", ])
+            payload = jwt.decode(auth_token, key=JWT_SECRET, algorithms=["HS256", ])
         except jwt.exceptions.InvalidSignatureError:
             return False
 

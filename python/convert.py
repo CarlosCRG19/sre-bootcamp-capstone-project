@@ -3,7 +3,7 @@ import re
 class CidrMaskConvert:
     def cidr_to_mask(self, cidr):
 
-        if cidr.isnumeric() == False or int(cidr) <= 0:
+        if str(cidr).isnumeric() == False or int(cidr) <= 0:
             return "Invalid"
 
         cidr = int(cidr)

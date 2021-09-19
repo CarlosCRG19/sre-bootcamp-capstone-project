@@ -35,22 +35,45 @@ def urlLogin():
 # e.g. http://127.0.0.1:8000/cidr-to-mask?value=8
 @app.route("/cidr-to-mask")
 def urlCidrToMask():
-    username = request.headers.get('Authorization')
-    if not protected.access_Data(username):
+
+    authorization = request.headers.get('Authorization')
+    auth_token = str.replace(str(authorization), "Bearer ", "")
+
+    if not protected.access_data(auth_token):
         abort(401)   
-    val = request.args.get('value')
-    r = {"function": "cidrToMask","input": val,"output": convert.cidr_to_mask(val), }
-    return jsonify(r)  
+
+    cidr = request.args.get('value')
+    mask = convert.cidr_to_mask(cidr)
+
+    res = {
+        "function": "cidrToMask",
+        "input": cidr,
+        "output": mask,
+     }
+
+    return jsonify(res)  
 
 # # e.g. http://127.0.0.1:8000/mask-to-cidr?value=255.0.0.0
 @app.route("/mask-to-cidr")
 def urlMaskToCidr():  
-    username = request.headers.get('Authorization')
-    if not protected.access_Data(username):
-        abort(401) 
-    val = request.args.get('value')
-    r = { "function": "maskToCidr","input": val,"output": convert.mask_to_cidr(val),}
-    return jsonify(r)
+
+    authorization = request.headers.get('Authorization')
+    auth_token = str.replace(str(authorization), "Bearer ", "")
+
+    if not protected.access_data(auth_token):
+        abort(401)   
+
+    mask = request.args.get('value')
+    cidr = convert.mask_to_cidr(mask)
+
+    res = {
+        "function": "cidrToMask",
+        "input": mask,
+        "output": cidr,
+     }
+
+    return jsonify(res)  
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8000)
 
