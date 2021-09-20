@@ -1,78 +1,61 @@
-from flask import *   
-from convert import *  
-from methods import *  
-from convert import *
+from flask import Flask, abort, jsonify, request 
+from methods import permissions, conversions
 
 app = Flask(__name__)
-login = Token()
-protected = Restricted()
-convert = CidrMaskConvert()
-validate = IpValidate()
+
+def authorize_and_convert(authorization, value, iscidr=True):
+    """
+    Validates the credentials and proceeds to the conversion of
+    input value.
+    :return: a dictionary indicating input and output values as well as wheter 
+    it was a Cidr to Mask conversion or viceversa
+    """
+    auth_token = str.replace(str(authorization), "Bearer ", "")
+
+    if not permissions.access_data(auth_token):
+        abort(401)   
+
+    return conversions.cidr_mask_conversion_handler(value, iscidr)
 
 # Just a health check
 @app.route("/")
-def urlRoot():  
+def url_root():  
     return "OK"
 
 # Just a health check
 @app.route("/_health")
-def urlHealth():
+def url_health():
     return "OK"  
 
 # e.g. http://127.0.0.1:8000/login
 @app.route("/login", methods=['POST'])
-def urlLogin():
-    
+def url_login():
     username = request.form['username']
     password = request.form['password']
     
     res = {
-        "data": login.generate_token(username, password)
+        "data": permissions.generate_token(username, password)
     }
     
     return jsonify(res)
 
 # e.g. http://127.0.0.1:8000/cidr-to-mask?value=8
 @app.route("/cidr-to-mask")
-def urlCidrToMask():
-
+def url_cidr_to_mask():
     authorization = request.headers.get('Authorization')
-    auth_token = str.replace(str(authorization), "Bearer ", "")
-
-    if not protected.access_data(auth_token):
-        abort(401)   
-
     cidr = request.args.get('value')
-    mask = convert.cidr_to_mask(cidr)
-
-    res = {
-        "function": "cidrToMask",
-        "input": cidr,
-        "output": mask,
-     }
-
-    return jsonify(res)  
-
+    
+    res = authorize_and_convert(authorization, cidr)
+    return jsonify(res)
+    
 # # e.g. http://127.0.0.1:8000/mask-to-cidr?value=255.0.0.0
 @app.route("/mask-to-cidr")
-def urlMaskToCidr():  
-
+def url_mask_to_cidr():  
     authorization = request.headers.get('Authorization')
-    auth_token = str.replace(str(authorization), "Bearer ", "")
-
-    if not protected.access_data(auth_token):
-        abort(401)   
-
     mask = request.args.get('value')
-    cidr = convert.mask_to_cidr(mask)
 
-    res = {
-        "function": "cidrToMask",
-        "input": mask,
-        "output": cidr,
-     }
-
-    return jsonify(res)  
+    res = authorize_and_convert(authorization, mask, False)
+    return jsonify(res)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8000)
